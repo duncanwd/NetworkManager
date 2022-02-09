@@ -397,9 +397,10 @@ const NML3AcdAddrInfo *nm_l3cfg_get_acd_addr_info(NML3Cfg *self, in_addr_t addr)
 /*****************************************************************************/
 
 typedef enum {
-    NM_L3CFG_CHECK_READY_FLAGS_NONE          = 0,
-    NM_L3CFG_CHECK_READY_FLAGS_IP4_ACD_READY = (1ull << 0),
-    NM_L3CFG_CHECK_READY_FLAGS_IP6_DAD_READY = (1ull << 1),
+    NM_L3CFG_CHECK_READY_FLAGS_NONE           = 0,
+    NM_L3CFG_CHECK_READY_FLAGS_IP4_ACD_READY  = (1ull << 0),
+    NM_L3CFG_CHECK_READY_FLAGS_IP6_DAD_READY  = (1ull << 1),
+    NM_L3CFG_CHECK_READY_FLAGS_TEMP_NOT_AVAIL = (1ull << 2),
 } NML3CfgCheckReadyFlags;
 
 gboolean nm_l3cfg_check_ready(NML3Cfg               *self,

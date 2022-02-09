@@ -9826,8 +9826,19 @@ _dev_ipmanual_check_ready(NMDevice *self)
             _dev_ipmanual_set_state(self, addr_family, NM_DEVICE_IP_STATE_FAILED);
             _dev_ip_state_check_async(self, AF_UNSPEC);
         } else if (ready) {
-            _dev_ipmanual_set_state(self, addr_family, NM_DEVICE_IP_STATE_READY);
-            _dev_ip_state_check_async(self, AF_UNSPEC);
+            if (nm_l3cfg_check_ready(priv->l3cfg,
+                                     priv->l3cds[L3_CONFIG_DATA_TYPE_MANUALIP].d,
+                                     addr_family,
+                                     NM_L3CFG_CHECK_READY_FLAGS_TEMP_NOT_AVAIL,
+                                     NULL)) {
+                _dev_ipmanual_set_state(self, addr_family, NM_DEVICE_IP_STATE_READY);
+                _dev_ip_state_check_async(self, AF_UNSPEC);
+            } else {
+                /* Some routes couldn't be configured before (possibly because they
+                 * refer to a ACD/DAD-pending address). Now that all addresses are
+                 * ACD/DAD-ready, retry to configure those routes. */
+                _dev_l3_cfg_commit(self, FALSE);
+            }
         }
     }
 }
