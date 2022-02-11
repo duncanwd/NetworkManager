@@ -77,7 +77,11 @@ enum {
     LAST_SIGNAL
 };
 
-NM_GOBJECT_PROPERTIES_DEFINE(NMDnsManager, PROP_MODE, PROP_RC_MANAGER, PROP_CONFIGURATION, );
+NM_GOBJECT_PROPERTIES_DEFINE(NMDnsManager,
+                             PROP_MODE,
+                             PROP_RC_MANAGER,
+                             PROP_CONFIGURATION,
+                             PROP_UPDATE_PENDING, );
 
 static guint signals[LAST_SIGNAL] = {0};
 
@@ -97,6 +101,8 @@ typedef struct {
 
     bool config_changed : 1;
 
+    bool update_pending : 1;
+
     char *hostname;
     guint updates_queue;
 
@@ -107,6 +113,9 @@ typedef struct {
     char                         *mode;
     NMDnsPlugin                  *sd_resolve_plugin;
     NMDnsPlugin                  *plugin;
+
+    gulong update_changed_signal_id_sd;
+    gulong update_changed_signal_id;
 
     NMConfig *config;
 
@@ -203,6 +212,43 @@ static NM_UTILS_LOOKUP_STR_DEFINE(
     NM_UTILS_LOOKUP_STR_ITEM(NM_DNS_IP_CONFIG_TYPE_DEFAULT, "default"),
     NM_UTILS_LOOKUP_STR_ITEM(NM_DNS_IP_CONFIG_TYPE_BEST_DEVICE, "best"),
     NM_UTILS_LOOKUP_STR_ITEM(NM_DNS_IP_CONFIG_TYPE_VPN, "vpn"), );
+
+/*****************************************************************************/
+
+static void
+_update_pending_check(NMDnsManager *self)
+{
+    NMDnsManagerPrivate *priv = NM_DNS_MANAGER_GET_PRIVATE(self);
+    gboolean             update_pending;
+
+    if (priv->plugin && nm_dns_plugin_get_update_pending(priv->plugin))
+        update_pending = TRUE;
+    else if (priv->sd_resolve_plugin && nm_dns_plugin_get_update_pending(priv->sd_resolve_plugin))
+        update_pending = TRUE;
+    else
+        update_pending = FALSE;
+
+    if (priv->update_pending == update_pending)
+        return;
+
+    priv->update_pending = update_pending;
+    _LOGD("update-pending changed: %spending", update_pending ? "" : "not ");
+    _notify(self, PROP_UPDATE_PENDING);
+}
+
+static void
+_update_pending_changed_cb(NMDnsPlugin *plugin, gboolean update_pending, NMDnsManager *self)
+{
+    _update_pending_check(self);
+}
+
+gboolean
+nm_dns_manager_get_update_pending(NMDnsManager *self)
+{
+    g_return_val_if_fail(NM_IS_DNS_MANAGER(self), FALSE);
+
+    return NM_DNS_MANAGER_GET_PRIVATE(self)->update_pending;
+}
 
 /*****************************************************************************/
 
@@ -2123,8 +2169,22 @@ _clear_plugin(NMDnsManager *self)
     nm_clear_g_source(&priv->plugin_ratelimit.timer);
 
     if (priv->plugin) {
+        nm_clear_g_signal_handler(priv->plugin, &priv->update_changed_signal_id);
         nm_dns_plugin_stop(priv->plugin);
         g_clear_object(&priv->plugin);
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static gboolean
+_clear_sd_resolved_plugin(NMDnsManager *self)
+{
+    NMDnsManagerPrivate *priv = NM_DNS_MANAGER_GET_PRIVATE(self);
+
+    if (priv->sd_resolve_plugin) {
+        nm_clear_g_signal_handler(priv->sd_resolve_plugin, &priv->update_changed_signal_id_sd);
+        g_clear_object(&priv->sd_resolve_plugin);
         return TRUE;
     }
     return FALSE;
@@ -2362,7 +2422,7 @@ again:
             priv->sd_resolve_plugin  = nm_dns_systemd_resolved_new();
             systemd_resolved_changed = TRUE;
         }
-    } else if (nm_clear_g_object(&priv->sd_resolve_plugin))
+    } else if (_clear_sd_resolved_plugin(self))
         systemd_resolved_changed = TRUE;
 
     g_object_freeze_notify(G_OBJECT(self));
@@ -2392,6 +2452,23 @@ again:
                                   "",
                                   ""));
     }
+
+    if (plugin_changed && priv->plugin && priv->update_changed_signal_id == 0) {
+        priv->update_changed_signal_id = g_signal_connect(priv->plugin,
+                                                          NM_DNS_PLUGIN_UPDATE_PENDING_CHANGED,
+                                                          G_CALLBACK(_update_pending_changed_cb),
+                                                          self);
+    }
+
+    if (systemd_resolved_changed && priv->sd_resolve_plugin
+        && priv->update_changed_signal_id_sd == 0) {
+        priv->update_changed_signal_id_sd = g_signal_connect(priv->sd_resolve_plugin,
+                                                             NM_DNS_PLUGIN_UPDATE_PENDING_CHANGED,
+                                                             G_CALLBACK(_update_pending_changed_cb),
+                                                             self);
+    }
+
+    _update_pending_check(self);
 
     g_object_thaw_notify(G_OBJECT(self));
 }
@@ -2597,6 +2674,9 @@ get_property(GObject *object, guint prop_id, GValue *value, GParamSpec *pspec)
     case PROP_CONFIGURATION:
         g_value_set_variant(value, _get_config_variant(self));
         break;
+    case PROP_UPDATE_PENDING:
+        g_value_set_boolean(value, priv->update_pending);
+        break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
         break;
@@ -2644,7 +2724,7 @@ dispose(GObject *object)
     if (priv->config)
         g_signal_handlers_disconnect_by_func(priv->config, config_changed_cb, self);
 
-    g_clear_object(&priv->sd_resolve_plugin);
+    _clear_sd_resolved_plugin(self);
     _clear_plugin(self);
 
     c_list_for_each_entry_safe (ip_data, ip_data_safe, &priv->ip_data_lst_head, ip_data_lst)
@@ -2720,6 +2800,13 @@ nm_dns_manager_class_init(NMDnsManagerClass *klass)
                              "",
                              G_VARIANT_TYPE("aa{sv}"),
                              NULL,
+                             G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+    obj_properties[PROP_UPDATE_PENDING] =
+        g_param_spec_boolean(NM_DNS_MANAGER_UPDATE_PENDING,
+                             "",
+                             "",
+                             FALSE,
                              G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
     g_object_class_install_properties(object_class, _PROPERTY_ENUMS_LAST, obj_properties);
