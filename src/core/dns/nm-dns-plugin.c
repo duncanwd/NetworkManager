@@ -17,6 +17,13 @@
 
 /*****************************************************************************/
 
+enum {
+    UPDATE_PENDING_CHANGED,
+    LAST_SIGNAL,
+};
+
+static guint signals[LAST_SIGNAL] = {0};
+
 typedef struct _NMDnsPluginPrivate {
     GPid  pid;
     guint watch_id;
@@ -102,6 +109,31 @@ nm_dns_plugin_stop(NMDnsPlugin *self)
         klass->stop(self);
 }
 
+gboolean
+nm_dns_plugin_get_update_pending(NMDnsPlugin *self)
+{
+    NMDnsPluginClass *klass;
+
+    g_return_val_if_fail(NM_IS_DNS_PLUGIN(self), FALSE);
+
+    klass = NM_DNS_PLUGIN_GET_CLASS(self);
+    if (!klass->get_update_pending)
+        return FALSE;
+    return klass->get_update_pending(self);
+}
+
+void
+_nm_dns_plugin_emit_update_pending_changed(NMDnsPlugin *self, gboolean update_pending)
+{
+    g_return_if_fail(NM_IS_DNS_PLUGIN(self));
+
+    _LOGD("[%s] update-pending changed: %spending",
+          nm_dns_plugin_get_name(self),
+          update_pending ? "" : "not ");
+
+    g_signal_emit(self, signals[UPDATE_PENDING_CHANGED], 0, update_pending);
+}
+
 /*****************************************************************************/
 
 static void
@@ -109,5 +141,16 @@ nm_dns_plugin_init(NMDnsPlugin *self)
 {}
 
 static void
-nm_dns_plugin_class_init(NMDnsPluginClass *plugin_class)
-{}
+nm_dns_plugin_class_init(NMDnsPluginClass *klass)
+{
+    signals[UPDATE_PENDING_CHANGED] = g_signal_new(NM_DNS_PLUGIN_UPDATE_PENDING_CHANGED,
+                                                   G_OBJECT_CLASS_TYPE(klass),
+                                                   G_SIGNAL_RUN_FIRST,
+                                                   0,
+                                                   NULL,
+                                                   NULL,
+                                                   NULL,
+                                                   G_TYPE_NONE,
+                                                   1,
+                                                   G_TYPE_BOOLEAN);
+}
