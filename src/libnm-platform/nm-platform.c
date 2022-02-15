@@ -4145,6 +4145,8 @@ next_plat:;
         const NMPObject            *o;
         guint32                     lifetime;
         guint32                     preferred;
+        char                        sbuf1[sizeof(_nm_utils_to_string_buffer)];
+        char                        addrstr[NM_UTILS_INET_ADDRSTRLEN];
 
         o = known_addresses->pdata[i_know];
         if (!o)
@@ -4152,6 +4154,8 @@ next_plat:;
 
         nm_assert(NMP_OBJECT_GET_TYPE(o) == NMP_OBJECT_TYPE_IP_ADDRESS(IS_IPv4));
 
+        _LOGD("-----------------------------------------static1 address to add %s",
+              nmp_object_to_string(o, NMP_OBJECT_TO_STRING_PUBLIC, sbuf1, sizeof(sbuf1)));
         known_address = NMP_OBJECT_CAST_IPX_ADDRESS(o);
 
         lifetime = nmp_utils_lifetime_get(known_address->ax.timestamp,
@@ -4162,6 +4166,8 @@ next_plat:;
         nm_assert(lifetime > 0);
 
         if (IS_IPv4) {
+            _LOGD("---------------------------------------static2 address to add %s",
+                  _nm_utils_inet4_ntop(known_address->a4.address, addrstr));
             if (!nm_platform_ip4_address_add(
                     self,
                     ifindex,

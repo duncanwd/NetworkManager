@@ -3500,6 +3500,7 @@ _l3_hook_add_obj_cb(const NML3ConfigData      *l3cd,
     AcdData                           *acd_data;
     in_addr_t                          addr;
     gboolean                           acd_bad = FALSE;
+    char                               sbuf1[sizeof(_nm_utils_to_string_buffer)];
 
     nm_assert(obj);
     nm_assert(hook_result);
@@ -3521,11 +3522,18 @@ _l3_hook_add_obj_cb(const NML3ConfigData      *l3cd,
         acd_data = _l3_acd_data_find(self, addr);
 
         if (!hook_data->to_commit) {
+            _LOGD("-----------------------------------------not hook data to commit %s",
+                  nmp_object_to_string(obj, NMP_OBJECT_TO_STRING_PUBLIC, sbuf1, sizeof(sbuf1)));
+
             nm_assert(self->priv.p->changed_configs_acd_state);
             /* We don't do an actual commit in _l3cfg_update_combined_config(). That means our acd-data
              * is not up to date. Check whether we have no acd_data ready, and if not, consider the address
              * as not ready. It cannot be ready until the next commit starts ACD. */
             if (!acd_data) {
+                _LOGD("-----------------------------------------not hook data to commit not acd "
+                      "data%s",
+                      nmp_object_to_string(obj, NMP_OBJECT_TO_STRING_PUBLIC, sbuf1, sizeof(sbuf1)));
+
                 acd_bad = TRUE;
                 goto out_ip4_address;
             }
@@ -3538,6 +3546,8 @@ _l3_hook_add_obj_cb(const NML3ConfigData      *l3cd,
         } else {
             /* If we commit, we called _l3_acd_data_add_all(), thus our acd_data must be present
              * and not dirty. */
+            _LOGD("-----------------------------------------hook data to commit %s",
+                  nmp_object_to_string(obj, NMP_OBJECT_TO_STRING_PUBLIC, sbuf1, sizeof(sbuf1)));
             nm_assert(({
                 NML3AcdAddrTrackInfo *_ti =
                     _acd_data_find_track(acd_data, l3cd, obj, hook_data->tag);
@@ -3550,6 +3560,8 @@ _l3_hook_add_obj_cb(const NML3ConfigData      *l3cd,
                        NM_L3_ACD_ADDR_STATE_READY,
                        NM_L3_ACD_ADDR_STATE_DEFENDING,
                        NM_L3_ACD_ADDR_STATE_EXTERNAL_REMOVED)) {
+            _LOGD("-----------------------------------------not in nm set %s",
+                  nmp_object_to_string(obj, NMP_OBJECT_TO_STRING_PUBLIC, sbuf1, sizeof(sbuf1)));
             acd_bad = TRUE;
             goto out_ip4_address;
         }
@@ -4188,6 +4200,7 @@ _l3_commit_one(NML3Cfg              *self,
     gboolean                     final_failure_for_temporary_not_available = FALSE;
     char                         sbuf_commit_type[50];
     gboolean                     success = TRUE;
+    char                         sbuf[sizeof(_nm_utils_to_string_buffer)];
 
     nm_assert(NM_IS_L3CFG(self));
     nm_assert(NM_IN_SET(commit_type,
@@ -4235,6 +4248,14 @@ _l3_commit_one(NML3Cfg              *self,
 
     /* FIXME(l3cfg): need to honor and set nm_l3_config_data_get_ndisc_*(). */
     /* FIXME(l3cfg): need to honor and set nm_l3_config_data_get_mtu(). */
+
+    for (guint i = 0; i < nm_g_ptr_array_len(addresses); i++) {
+        _LOGD("---------------------------------------static address to add %s",
+              nmp_object_to_string(addresses->pdata[i],
+                                   NMP_OBJECT_TO_STRING_PUBLIC,
+                                   sbuf,
+                                   sizeof(sbuf)));
+    }
 
     nm_platform_ip_address_sync(self->priv.platform,
                                 addr_family,
