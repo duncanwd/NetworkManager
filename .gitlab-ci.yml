@@ -47,11 +47,11 @@ variables:
   #
   # This is done by running `ci-fairy generate-template` and possibly bump
   # ".default_tag".
-  FEDORA_TAG:  '2022-02-16.0-ef21096af26b'
-  UBUNTU_TAG:  '2022-02-16.0-ddd15e8275b0'
-  DEBIAN_TAG:  '2022-02-16.0-ddd15e8275b0'
-  CENTOS_TAG:  '2022-02-16.0-ef21096af26b'
-  ALPINE_TAG:  '2022-02-16.0-53115374107d'
+  FEDORA_TAG:  '2022-02-16.0-f313cdb0a8dc'
+  UBUNTU_TAG:  '2022-02-16.0-ac1630948525'
+  DEBIAN_TAG:  '2022-02-16.0-ac1630948525'
+  CENTOS_TAG:  '2022-02-16.0-f313cdb0a8dc'
+  ALPINE_TAG:  '2022-02-16.0-a3e78ac99fdb'
 
   FEDORA_EXEC: 'bash .gitlab-ci/fedora-install.sh'
   UBUNTU_EXEC: 'bash .gitlab-ci/debian-install.sh'
@@ -304,6 +304,36 @@ centos:7.9.2009@container-prep:
     FDO_DISTRIBUTION_TAG: $CENTOS_TAG
     FDO_DISTRIBUTION_EXEC: $CENTOS_EXEC
 
+centos:8.1.1911@container-prep:
+  extends:
+    - .fdo.container-build@centos
+  stage: prep
+  variables:
+    GIT_STRATEGY: none
+    FDO_DISTRIBUTION_VERSION: '8.1.1911'
+    FDO_DISTRIBUTION_TAG: $CENTOS_TAG
+    FDO_DISTRIBUTION_EXEC: $CENTOS_EXEC
+
+centos:8.2.2004@container-prep:
+  extends:
+    - .fdo.container-build@centos
+  stage: prep
+  variables:
+    GIT_STRATEGY: none
+    FDO_DISTRIBUTION_VERSION: '8.2.2004'
+    FDO_DISTRIBUTION_TAG: $CENTOS_TAG
+    FDO_DISTRIBUTION_EXEC: $CENTOS_EXEC
+
+centos:8.3.2011@container-prep:
+  extends:
+    - .fdo.container-build@centos
+  stage: prep
+  variables:
+    GIT_STRATEGY: none
+    FDO_DISTRIBUTION_VERSION: '8.3.2011'
+    FDO_DISTRIBUTION_TAG: $CENTOS_TAG
+    FDO_DISTRIBUTION_EXEC: $CENTOS_EXEC
+
 alpine:latest@container-prep:
   extends:
     - .fdo.container-build@alpine
@@ -544,6 +574,33 @@ centos:7.9.2009@container-clean:
     GIT_STRATEGY: none
     CURRENT_CONTAINER_IMAGE: $CI_REGISTRY_IMAGE/centos/$FDO_DISTRIBUTION_VERSION:$FDO_DISTRIBUTION_TAG
     FDO_DISTRIBUTION_VERSION: '7.9.2009'
+    FDO_DISTRIBUTION_TAG: $CENTOS_TAG
+
+centos:8.1.1911@container-clean:
+  extends:
+    - .container-clean
+  variables:
+    GIT_STRATEGY: none
+    CURRENT_CONTAINER_IMAGE: $CI_REGISTRY_IMAGE/centos/$FDO_DISTRIBUTION_VERSION:$FDO_DISTRIBUTION_TAG
+    FDO_DISTRIBUTION_VERSION: '8.1.1911'
+    FDO_DISTRIBUTION_TAG: $CENTOS_TAG
+
+centos:8.2.2004@container-clean:
+  extends:
+    - .container-clean
+  variables:
+    GIT_STRATEGY: none
+    CURRENT_CONTAINER_IMAGE: $CI_REGISTRY_IMAGE/centos/$FDO_DISTRIBUTION_VERSION:$FDO_DISTRIBUTION_TAG
+    FDO_DISTRIBUTION_VERSION: '8.2.2004'
+    FDO_DISTRIBUTION_TAG: $CENTOS_TAG
+
+centos:8.3.2011@container-clean:
+  extends:
+    - .container-clean
+  variables:
+    GIT_STRATEGY: none
+    CURRENT_CONTAINER_IMAGE: $CI_REGISTRY_IMAGE/centos/$FDO_DISTRIBUTION_VERSION:$FDO_DISTRIBUTION_TAG
+    FDO_DISTRIBUTION_VERSION: '8.3.2011'
     FDO_DISTRIBUTION_TAG: $CENTOS_TAG
 
 alpine:latest@container-clean:
@@ -815,6 +872,39 @@ t_centos:7.9.2009:
     FDO_DISTRIBUTION_TAG: $CENTOS_TAG
   needs:
     - "centos:7.9.2009@container-prep"
+  when: manual
+
+t_centos:8.1.1911:
+  extends:
+    - .build@template
+    - .fdo.distribution-image@centos
+  variables:
+    FDO_DISTRIBUTION_VERSION: '8.1.1911'
+    FDO_DISTRIBUTION_TAG: $CENTOS_TAG
+  needs:
+    - "centos:8.1.1911@container-prep"
+  when: manual
+
+t_centos:8.2.2004:
+  extends:
+    - .build@template
+    - .fdo.distribution-image@centos
+  variables:
+    FDO_DISTRIBUTION_VERSION: '8.2.2004'
+    FDO_DISTRIBUTION_TAG: $CENTOS_TAG
+  needs:
+    - "centos:8.2.2004@container-prep"
+  when: manual
+
+t_centos:8.3.2011:
+  extends:
+    - .build@template
+    - .fdo.distribution-image@centos
+  variables:
+    FDO_DISTRIBUTION_VERSION: '8.3.2011'
+    FDO_DISTRIBUTION_TAG: $CENTOS_TAG
+  needs:
+    - "centos:8.3.2011@container-prep"
   when: manual
 
 t_alpine:latest:
