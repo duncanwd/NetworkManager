@@ -7,7 +7,7 @@
 ########################################
 
 
-.templates_sha: &template_sha 14731f78c23c7b523a85a26a068ade9ac1ecd2f3 # see https://docs.gitlab.com/ee/ci/yaml/#includefile
+.templates_sha: &template_sha 11fe3571905faceef51c7253dfdaf79ece8cf062 # see https://docs.gitlab.com/ee/ci/yaml/#includefile
 
 include:
   # Alpine container builder template
@@ -47,11 +47,11 @@ variables:
   #
   # This is done by running `ci-fairy generate-template` and possibly bump
   # ".default_tag".
-  FEDORA_TAG:  '2022-02-14.0-8384452eb54e'
-  UBUNTU_TAG:  '2022-02-14.0-bd3c060f94c2'
-  DEBIAN_TAG:  '2022-02-14.0-bd3c060f94c2'
-  CENTOS_TAG:  '2022-02-14.0-8384452eb54e'
-  ALPINE_TAG:  '2022-02-14.0-0990abecb69f'
+  FEDORA_TAG:  '2022-02-16.0-ef21096af26b'
+  UBUNTU_TAG:  '2022-02-16.0-ddd15e8275b0'
+  DEBIAN_TAG:  '2022-02-16.0-ddd15e8275b0'
+  CENTOS_TAG:  '2022-02-16.0-ef21096af26b'
+  ALPINE_TAG:  '2022-02-16.0-53115374107d'
 
   FEDORA_EXEC: 'bash .gitlab-ci/fedora-install.sh'
   UBUNTU_EXEC: 'bash .gitlab-ci/debian-install.sh'
