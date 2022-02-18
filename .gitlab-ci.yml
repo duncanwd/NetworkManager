@@ -47,11 +47,11 @@ variables:
   #
   # This is done by running `ci-fairy generate-template` and possibly bump
   # ".default_tag".
-  FEDORA_TAG:  '2022-02-16.0-f313cdb0a8dc'
-  UBUNTU_TAG:  '2022-02-16.0-ac1630948525'
-  DEBIAN_TAG:  '2022-02-16.0-ac1630948525'
-  CENTOS_TAG:  '2022-02-16.0-f313cdb0a8dc'
-  ALPINE_TAG:  '2022-02-16.0-a3e78ac99fdb'
+  FEDORA_TAG:  '2022-02-16.0-67686962e9a0'
+  UBUNTU_TAG:  '2022-02-16.0-983a47145931'
+  DEBIAN_TAG:  '2022-02-16.0-983a47145931'
+  CENTOS_TAG:  '2022-02-16.0-67686962e9a0'
+  ALPINE_TAG:  '2022-02-16.0-5433831e3c7d'
 
   FEDORA_EXEC: 'bash .gitlab-ci/fedora-install.sh'
   UBUNTU_EXEC: 'bash .gitlab-ci/debian-install.sh'
@@ -334,6 +334,16 @@ centos:8.3.2011@container-prep:
     FDO_DISTRIBUTION_TAG: $CENTOS_TAG
     FDO_DISTRIBUTION_EXEC: $CENTOS_EXEC
 
+centos:8@container-prep:
+  extends:
+    - .fdo.container-build@centos
+  stage: prep
+  variables:
+    GIT_STRATEGY: none
+    FDO_DISTRIBUTION_VERSION: '8'
+    FDO_DISTRIBUTION_TAG: $CENTOS_TAG
+    FDO_DISTRIBUTION_EXEC: $CENTOS_EXEC
+
 alpine:latest@container-prep:
   extends:
     - .fdo.container-build@alpine
@@ -601,6 +611,15 @@ centos:8.3.2011@container-clean:
     GIT_STRATEGY: none
     CURRENT_CONTAINER_IMAGE: $CI_REGISTRY_IMAGE/centos/$FDO_DISTRIBUTION_VERSION:$FDO_DISTRIBUTION_TAG
     FDO_DISTRIBUTION_VERSION: '8.3.2011'
+    FDO_DISTRIBUTION_TAG: $CENTOS_TAG
+
+centos:8@container-clean:
+  extends:
+    - .container-clean
+  variables:
+    GIT_STRATEGY: none
+    CURRENT_CONTAINER_IMAGE: $CI_REGISTRY_IMAGE/centos/$FDO_DISTRIBUTION_VERSION:$FDO_DISTRIBUTION_TAG
+    FDO_DISTRIBUTION_VERSION: '8'
     FDO_DISTRIBUTION_TAG: $CENTOS_TAG
 
 alpine:latest@container-clean:
@@ -905,6 +924,17 @@ t_centos:8.3.2011:
     FDO_DISTRIBUTION_TAG: $CENTOS_TAG
   needs:
     - "centos:8.3.2011@container-prep"
+  when: manual
+
+t_centos:8:
+  extends:
+    - .build@template
+    - .fdo.distribution-image@centos
+  variables:
+    FDO_DISTRIBUTION_VERSION: '8'
+    FDO_DISTRIBUTION_TAG: $CENTOS_TAG
+  needs:
+    - "centos:8@container-prep"
   when: manual
 
 t_alpine:latest:
